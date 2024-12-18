@@ -1,0 +1,6 @@
+{
+    "java.codeGeneration.insertionLocation": "afterCursor",
+    "sqltools.highlightQuery": true,
+    "editor.suggest.insertMode": "replace",
+    "editor.cursorStyle": "underline"
+}
