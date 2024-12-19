@@ -16,9 +16,13 @@ function WeatherInfo() {
                 dailyData[date] = {
                     temps: [],
                     weather: entry.weather[0],
+                    rainChances: [],
                 };
             }
             dailyData[date].temps.push(entry.main.temp);
+            if (entry.pop != null) {    
+                dailyData[date].rainChances.push(entry.pop);
+            }
         });
 
         return Object.entries(dailyData).map(([date, data]) => {
@@ -29,6 +33,7 @@ function WeatherInfo() {
                     max: Math.max(...data.temps),
                 },
                 weather: data.weather,
+                maxRainChance : data.rainChances.length > 0 ? Math.max(...data.rainChances) * 100 : null,
             };
         });
     };
@@ -160,15 +165,16 @@ function WeatherInfo() {
                             {weeklyData.map((day, index) => {
                                 const maxTemp = convertTemperature(day.temp.max);
                                 const minTemp = convertTemperature(day.temp.min);
-                                const rainChance =`${(day.pop * 100).toFixed(0)}%`;
+                                const condition = day.weather?.main || "Unknown";
+                                const maxRainChance = day.maxRainChance != null ? `${day.maxRainChance.toFixed(0)}%` : 'N/A';
 
                                 return (
                                     <div key={index} style={{ marginBottom: "10px" }}>
                                         <p>
                                             <strong>Day {index + 1}</strong>: {maxTemp} / {minTemp}
-                                            <p>Rain Chance: {rainChance}</p>
-
                                         </p>
+                                        <p>Rain Chance: {maxRainChance}</p>
+                                        <p>Condition: {condition}</p>
                                     </div>
                                 );
                             })}
