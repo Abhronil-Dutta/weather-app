@@ -85,6 +85,48 @@ function WeatherInfo() {
         fetchWeather();
     }, []);
 
+    const generateSuggestions = (weatherData) => {
+        const { temp, maxDaytemp, minDaytemp, weatherCondition, humidity, windSpeed } = weatherData;
+        let suggestions = [];
+    
+        // Temperature-based suggestions
+        if (temp > 30) suggestions.push("It's hot outside! Stay hydrated and avoid prolonged exposure to the sun. 🥤☀️");
+        if (temp < 15) suggestions.push("It's quite chilly! Make sure to wear a coat and gloves. 🧥🧤");
+        if (temp >= 15 && temp <= 30) suggestions.push("The weather is pleasant! A light jacket might be all you need. 😊");
+    
+        // Day temperature swings
+        if ((maxDaytemp - minDaytemp) > 10) suggestions.push("Temperature swings today! Wear layers to stay comfortable. 🧥👕");
+        if (maxDaytemp > 35) suggestions.push("Be prepared for a hot day ahead. Consider indoor activities. 🌡️");
+        if (minDaytemp < 5) suggestions.push("Cold nights expected! Keep warm blankets and heating ready. 🛏️🔥");
+    
+        // Weather condition suggestions
+        if (weatherCondition.includes("Rain")) suggestions.push("Rain is expected. Carry an umbrella and wear waterproof shoes. 🌧️");
+        if (weatherCondition.includes("Clouds")) suggestions.push("It's cloudy today. Keep an eye out for unexpected rain. ☁️");
+        if (weatherCondition.includes("Clear")) {
+            if (temp > 25) suggestions.push("A clear sunny day! Don't forget sunglasses and sunscreen. 😎🧴");
+            else if (temp < 10) suggestions.push("Clear skies but chilly! A perfect day for a warm drink. 🍵");
+        }
+        if (weatherCondition.includes("Snow")) suggestions.push("Snow is expected! Dress warmly and drive carefully. ❄️🚗");
+        if (weatherCondition.includes("Fog")) suggestions.push("Visibility might be low due to fog. Drive carefully and use fog lights. 🚗💡");
+        if (weatherCondition.includes("Haze")) suggestions.push("Hazy conditions detected. Visibility might be reduced; drive carefully and use headlights. 🚗💡")
+            
+        // Humidity-based suggestions
+        if (humidity > 80) suggestions.push("High humidity! Keep cool and avoid strenuous outdoor activities. 💦");
+        if (humidity < 20) suggestions.push("The air is quite dry. Use a moisturizer and stay hydrated. 💧");
+    
+        // Wind speed suggestions
+        if (windSpeed > 10) {
+            if (temp < 15) {
+                suggestions.push("Wind chill might make it feel colder. Dress in layers. 🧣");
+            } else {
+                suggestions.push("It's windy outside! Secure loose objects if you're outdoors. 🌬️");
+            }
+        }
+    
+        return suggestions;
+    };
+    
+
     const convertTemperature = (temp) => {
         if (temp == null) return "N/A";
         if (unit === "Celsius") return temp.toFixed(1) + "°C";
@@ -127,34 +169,41 @@ function WeatherInfo() {
             ) : weatherData ? (
                 <div>
                     {(() => {
+                        //All data shown
                         const temp = weatherData?.main?.temp;
+                        const minDaytemp = weatherData?.main?.temp_min;
+                        const maxDaytemp = weatherData?.main?.temp_max;
                         const weatherCondition = weatherData?.weather?.[0]?.main || "Unknown";
                         const humidity = weatherData?.main?.humidity;
                         const windSpeed = weatherData?.wind?.speed || "N/A";
-                        const rainLastHour = weatherData?.rain?.["1h"] ? `${weatherData.rain["1h"].toFixed(1)} mm` : "No rain";
-
-                        let advice = "";
-
+                        const rainLastHour = weatherData?.rain?.["1h"] ? `${weatherData.rain["1h"].toFixed(1)} mm` : "No data available";
+                        const sunriseTime = weatherData?.sys?.sunrise ? new Date(weatherData.sys.sunrise * 1000).toLocaleTimeString() : "N/A";
+                        const sunsetTime = weatherData?.sys?.sunset ? new Date(weatherData.sys.sunset * 1000).toLocaleTimeString() : "N/A";
+                        
+                        //Converting Temperature
                         const convertedTemp = convertTemperature(temp);
+                        const covertedMinTemp = convertTemperature(minDaytemp);
+                        const convertedMaxTemp = convertTemperature(maxDaytemp);
 
-                        if (weatherCondition.includes("Rain")) {
-                            advice = "Take an umbrella 🌧️";
-                        } else if (weatherCondition.includes("Sunny")) {
-                            advice = "Wear Sunglasses!! 😎";
-                        } else {
-                            advice = "Wear comfortable clothes";
-                        }
+                        //suggestions
+                        const suggestions = generateSuggestions({temp, maxDaytemp, minDaytemp, weatherCondition, humidity, windSpeed,});
 
                         return (
                             <>
                                 <p>Temperature: {convertedTemp}</p>
+                                <p>Max/Min: {convertedMaxTemp} / {covertedMinTemp}</p>
                                 <p>Condition: {weatherCondition}</p>
                                 <p>Humidity: {humidity}%</p>
                                 <p>Wind Speed: {windSpeed} m/s</p>
                                 <p>Rain (Last Hour): {rainLastHour}</p>
-                                <p>
-                                    <strong>Advice:</strong> {advice}
-                                </p>
+                                <p>Sunrise: {sunriseTime}</p>
+                                <p>Sunset: {sunsetTime}</p>
+                                <h4>Suggestions</h4>
+                                <ul>
+                                    {suggestions.map((suggestion, index)=> (
+                                        <li key={index}>{suggestion}</li>
+                                    ))}
+                                </ul>
                             </>
                         );
                     })()}
