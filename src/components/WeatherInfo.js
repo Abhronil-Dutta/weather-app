@@ -123,7 +123,7 @@ function WeatherInfo() {
     
 
     const formatCityTime = (timestamp, timezoneOffset, timeFormat) => {
-        const utcTime = new Date((timestamp) * 1000); // Adjust timestamp with timezone offset
+        const utcTime = new Date((timestamp + 25200 + timezoneOffset) * 1000); // Adjust timestamp with timezone offset
         return formatTime(utcTime, timeFormat); // Use the formatTime function to format the adjusted time
     };
 
@@ -142,6 +142,11 @@ function WeatherInfo() {
             // Default: dd/mm/yyyy
             return `${day}/${month}/${year}`;
         }
+    };
+
+    const getDayName = (date, timezoneOffset) => {
+        const utcDate = new Date(date.getTime() + timezoneOffset * 1000); // Adjust for timezone
+        return new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(utcDate);
     };
 
     const generateSuggestions = (weatherData) => {
@@ -286,9 +291,9 @@ function WeatherInfo() {
                         const humidity = weatherData?.main?.humidity;
                         const windSpeed = weatherData?.wind?.speed || "N/A";
                         const rainLastHour = weatherData?.rain?.["1h"] ? `${weatherData.rain["1h"].toFixed(1)} mm` : "No data available";
-                        const sunriseTime = weatherData?.sys?.sunrise ? new Date(weatherData.sys.sunrise * 1000).toLocaleTimeString() : "N/A";
-                        const sunsetTime = weatherData?.sys?.sunset ? new Date(weatherData.sys.sunset * 1000).toLocaleTimeString() : "N/A";
                         const cityTime = getCityTime(weatherData.timezone);
+                        const todayDayName = getDayName(new Date(), weatherData.timezone);
+
                         //Converting Temperature
                         const convertedTemp = convertTemperature(temp);
                         const covertedMinTemp = convertTemperature(minDaytemp);
@@ -301,6 +306,7 @@ function WeatherInfo() {
                             <>
                                 <p>Current Time: {formatTime(getCityTime(weatherData.timezone), timeFormat)}</p>
                                 <p>Current Date: {formatDate(cityTime, dateFormat)}</p>
+                                <p>Today is: {todayDayName}</p>
                                 <p>Moon Phase: {getMoonPhase(new Date())}</p>
                                 <p>Temperature: {convertedTemp}</p>
                                 <p>Max/Min: {convertedMaxTemp} / {covertedMinTemp}</p>
@@ -325,8 +331,10 @@ function WeatherInfo() {
                         <div>
                             {weeklyData.map((day, index) => {
                                 const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                                const date = new Date(day.date);
-                                const dayName = daysOfWeek[(date.getDay() + 1) % 7];
+                                const cityTime = getCityTime(weatherData.timezone);
+                                const cityDayIndex = cityTime.getDay();
+                                const dayName = daysOfWeek[(cityDayIndex + index + 1) % 7];
+                                
 
                                 const maxTemp = convertTemperature(day.temp.max);
                                 const minTemp = convertTemperature(day.temp.min);
