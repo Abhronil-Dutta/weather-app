@@ -7,6 +7,7 @@ function WeatherInfo() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [weeklyData, setWeeklyData] = useState(null);
+    const [currentTime, setCurrentTime] = useState("");
 
     const aggregateDailyData = (list) => {
         const dailyData = {};
@@ -83,6 +84,12 @@ function WeatherInfo() {
 
     useEffect(() => {
         fetchWeather();
+        const interval = setInterval(() => {
+            const now = new Date();
+            setCurrentTime(now.toLocaleString());
+        }, 1000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const generateSuggestions = (weatherData) => {
@@ -109,7 +116,7 @@ function WeatherInfo() {
         if (weatherCondition.includes("Snow")) suggestions.push("Snow is expected! Dress warmly and drive carefully. ❄️🚗");
         if (weatherCondition.includes("Fog")) suggestions.push("Visibility might be low due to fog. Drive carefully and use fog lights. 🚗💡");
         if (weatherCondition.includes("Haze")) suggestions.push("Hazy conditions detected. Visibility might be reduced; drive carefully and use headlights. 🚗💡")
-            
+
         // Humidity-based suggestions
         if (humidity > 80) suggestions.push("High humidity! Keep cool and avoid strenuous outdoor activities. 💦");
         if (humidity < 20) suggestions.push("The air is quite dry. Use a moisturizer and stay hydrated. 💧");
@@ -133,6 +140,27 @@ function WeatherInfo() {
         if (unit === "Fahrenheit") return ((temp * 9) / 5 + 32).toFixed(1) + "°F";
         if (unit === "Kelvin") return (temp + 273.15).toFixed(1) + "K";
     };
+
+    const getMoonPhase = (date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1; 
+        const day = date.getDate();
+
+    
+        const lp = 2551443; 
+        const newMoon = new Date(1970, 0, 7, 20, 35, 0).getTime(); 
+        const phase = ((date.getTime() - newMoon) / 1000) % lp; 
+        const age = Math.floor((phase / (24 * 3600))); 
+
+        if (age === 0) return "New Moon 🌑";
+        if (age < 7) return "Waxing Crescent 🌒";
+        if (age === 7) return "First Quarter 🌓";
+        if (age < 14) return "Waxing Gibbous 🌔";
+        if (age === 14) return "Full Moon 🌕";
+        if (age < 21) return "Waning Gibbous 🌖";
+        if (age === 21) return "Last Quarter 🌗";
+        return "Waning Crescent 🌘";
+    }
 
     return (
         <div>
@@ -190,6 +218,8 @@ function WeatherInfo() {
 
                         return (
                             <>
+                                <p>Current Date & Time: {currentTime}</p>
+                                <p>Moon Phase: {getMoonPhase(new Date())}</p>
                                 <p>Temperature: {convertedTemp}</p>
                                 <p>Max/Min: {convertedMaxTemp} / {covertedMinTemp}</p>
                                 <p>Condition: {weatherCondition}</p>
@@ -212,6 +242,10 @@ function WeatherInfo() {
                     {weeklyData ? (
                         <div>
                             {weeklyData.map((day, index) => {
+                                const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                                const date = new Date(day.date);
+                                const dayName = daysOfWeek[date.getDay()];
+
                                 const maxTemp = convertTemperature(day.temp.max);
                                 const minTemp = convertTemperature(day.temp.min);
                                 const condition = day.weather?.main || "Unknown";
@@ -220,7 +254,7 @@ function WeatherInfo() {
                                 return (
                                     <div key={index} style={{ marginBottom: "10px" }}>
                                         <p>
-                                            <strong>Day {index + 1}</strong>: {maxTemp} / {minTemp}
+                                            <strong>{dayName}</strong>: {maxTemp} / {minTemp}
                                         </p>
                                         <p>Rain Chance: {maxRainChance}</p>
                                         <p>Condition: {condition}</p>
