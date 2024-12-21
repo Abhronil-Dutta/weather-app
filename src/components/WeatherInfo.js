@@ -8,6 +8,9 @@ function WeatherInfo() {
     const [loading, setLoading] = useState(false);
     const [weeklyData, setWeeklyData] = useState(null);
     const [currentTime, setCurrentTime] = useState("");
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [dateFormat, setDateFormat] = useState("dd/mm/yyyy");
+    const [timeFormat, setTimeFormat] = useState("24-hour");
 
     const aggregateDailyData = (list) => {
         const dailyData = {};
@@ -92,6 +95,55 @@ function WeatherInfo() {
         return () => clearInterval(interval);
     }, []);
 
+    const getCityTime = (timezoneOffset) => {
+        const now = new Date();
+        const utc = now.getTime() + now.getTimezoneOffset() * 60000; // UTC time in ms
+        const localTime = new Date(utc + timezoneOffset * 1000); // Adjust to city time
+        return localTime;
+    };
+
+    const formatTime = (time, format) => {
+        let hours = time.getHours();
+        const minutes = time.getMinutes().toString().padStart(2, '0');
+        
+        if (format === "12-hour") {
+            const suffix = hours >= 12 ? "PM" : "AM";
+            hours = hours % 12 || 12; // Convert to 12-hour format
+            return `${hours}:${minutes} ${suffix}`;
+        } else if (format === "military") {
+            if (hours < 10) {
+                return `0${hours}${minutes}`;
+            }
+            return `${hours}${minutes}`;
+        } else {
+            // Default: 24-hour format
+            return `${hours.toString().padStart(2, '0')}:${minutes}`;
+        }
+    };
+    
+
+    const formatCityTime = (timestamp, timezoneOffset, timeFormat) => {
+        const utcTime = new Date((timestamp) * 1000); // Adjust timestamp with timezone offset
+        return formatTime(utcTime, timeFormat); // Use the formatTime function to format the adjusted time
+    };
+
+
+
+    const formatDate = (date, format) => {
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based
+        const year = date.getFullYear();
+    
+        if (format === "yyyy/mm/dd") {
+            return `${year}/${month}/${day}`;
+        } else if (format === "mm/dd/yyyy") {
+            return `${month}/${day}/${year}`;
+        } else {
+            // Default: dd/mm/yyyy
+            return `${day}/${month}/${year}`;
+        }
+    };
+
     const generateSuggestions = (weatherData) => {
         const { temp, maxDaytemp, minDaytemp, weatherCondition, humidity, windSpeed } = weatherData;
         let suggestions = [];
@@ -164,7 +216,50 @@ function WeatherInfo() {
 
     return (
         <div>
-            <h2>Weather Details</h2>
+           <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} style={{ position: 'absolute', top: '10px', right: '10px' }}>
+            Settings ⚙️
+            </button>
+
+            {isSettingsOpen && (
+                <div style={{position: 'absolute', top: '40px', right: '10px', background: '#fff',padding: '10px', border: 'px solid #ccc'}}> 
+                <h3>Settings</h3>
+
+                <label>
+                    Temperature Format: <br></br>
+                    <select value={unit} onChange={(e) => setUnit(e.target.value)}>
+                        <option value="Celsius">Celsius</option>
+                        <option value="Fahrenheit">Fahrenheit</option>
+                        <option value="Kelvin">Kelvin</option>
+                    </select>
+                </label>
+
+                <br></br>
+
+                <label>
+                Date Format: <br></br>
+                <select value={dateFormat} onChange={(e) => setDateFormat(e.target.value)}>
+                    <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                    <option value="yyyy/mm/dd">YYYY/MM/DD</option>
+                </select>
+                </label>
+                <br></br>
+                <label>
+                Time Format: <br></br>
+                <select value={timeFormat} onChange={(e) => setTimeFormat(e.target.value)}>
+                    <option value="12-hour">12-Hour</option>
+                    <option value="24-hour">24-Hour</option>
+                    <option value="military">Military Time</option>
+                </select>
+                </label>
+                <br></br>
+                <button onClick={() => setIsSettingsOpen(false)}>Close</button>
+
+                
+                
+                </div>
+            )}
+
 
             <input
                 type="text"
@@ -174,21 +269,7 @@ function WeatherInfo() {
             />
             <button onClick={fetchWeather}>Search</button>
 
-            <label>
-                <input
-                    type="range"
-                    min="1"
-                    max="3"
-                    step="1"
-                    onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (value === 1) setUnit("Celsius");
-                        if (value === 2) setUnit("Fahrenheit");
-                        if (value === 3) setUnit("Kelvin");
-                    }}
-                />
-                Switch Units: (1: Celsius, 2: Fahrenheit, 3: Kelvin)
-            </label>
+            
 
             {loading ? (
                 <p>Loading...</p>
@@ -207,7 +288,7 @@ function WeatherInfo() {
                         const rainLastHour = weatherData?.rain?.["1h"] ? `${weatherData.rain["1h"].toFixed(1)} mm` : "No data available";
                         const sunriseTime = weatherData?.sys?.sunrise ? new Date(weatherData.sys.sunrise * 1000).toLocaleTimeString() : "N/A";
                         const sunsetTime = weatherData?.sys?.sunset ? new Date(weatherData.sys.sunset * 1000).toLocaleTimeString() : "N/A";
-                        
+                        const cityTime = getCityTime(weatherData.timezone);
                         //Converting Temperature
                         const convertedTemp = convertTemperature(temp);
                         const covertedMinTemp = convertTemperature(minDaytemp);
@@ -218,7 +299,8 @@ function WeatherInfo() {
 
                         return (
                             <>
-                                <p>Current Date & Time: {currentTime}</p>
+                                <p>Current Time: {formatTime(getCityTime(weatherData.timezone), timeFormat)}</p>
+                                <p>Current Date: {formatDate(cityTime, dateFormat)}</p>
                                 <p>Moon Phase: {getMoonPhase(new Date())}</p>
                                 <p>Temperature: {convertedTemp}</p>
                                 <p>Max/Min: {convertedMaxTemp} / {covertedMinTemp}</p>
@@ -226,8 +308,8 @@ function WeatherInfo() {
                                 <p>Humidity: {humidity}%</p>
                                 <p>Wind Speed: {windSpeed} m/s</p>
                                 <p>Rain (Last Hour): {rainLastHour}</p>
-                                <p>Sunrise: {sunriseTime}</p>
-                                <p>Sunset: {sunsetTime}</p>
+                                <p>Sunrise: {formatCityTime(weatherData.sys.sunrise, weatherData.timezone, timeFormat)}</p>
+                                <p>Sunset: {formatCityTime(weatherData.sys.sunset, weatherData.timezone, timeFormat)}</p>
                                 <h4>Suggestions</h4>
                                 <ul>
                                     {suggestions.map((suggestion, index)=> (
@@ -244,7 +326,7 @@ function WeatherInfo() {
                             {weeklyData.map((day, index) => {
                                 const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
                                 const date = new Date(day.date);
-                                const dayName = daysOfWeek[date.getDay()];
+                                const dayName = daysOfWeek[(date.getDay() + 1) % 7];
 
                                 const maxTemp = convertTemperature(day.temp.max);
                                 const minTemp = convertTemperature(day.temp.min);
