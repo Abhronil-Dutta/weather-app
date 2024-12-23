@@ -91,7 +91,7 @@ function WeatherInfo() {
             const now = new Date();
             setCurrentTime(now.toLocaleString());
         }, 1000);
-
+        document.body.className = weatherData ? weatherData.weather[0].main.toLowerCase() : 'clear';
         return () => clearInterval(interval);
     }, []);
 
@@ -221,12 +221,28 @@ function WeatherInfo() {
 
     return (
         <div>
-           <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} style={{ position: 'absolute', top: '10px', right: '10px' }}>
+
+            
+            {/*input block*/}
+
+
+             <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Enter city name"
+            />
+            <button onClick={fetchWeather}>Search</button>
+
+
+
+            {/*settings*/}
+            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} style={{ position: 'absolute', top: '10px', left: '10px' }}>
             Settings ⚙️
             </button>
 
             {isSettingsOpen && (
-                <div style={{position: 'absolute', top: '40px', right: '10px', background: '#fff',padding: '10px', border: 'px solid #ccc'}}> 
+                <div style={{position: 'absolute', top: '40px', left: '10px', background: '#000',padding: '10px', border: 'px solid #ccc'}}> 
                 <h3>Settings</h3>
 
                 <label>
@@ -263,16 +279,10 @@ function WeatherInfo() {
                 
                 
                 </div>
+
+
+
             )}
-
-
-            <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Enter city name"
-            />
-            <button onClick={fetchWeather}>Search</button>
 
             
 
@@ -302,20 +312,37 @@ function WeatherInfo() {
                         //suggestions
                         const suggestions = generateSuggestions({temp, maxDaytemp, minDaytemp, weatherCondition, humidity, windSpeed,});
 
+
+
+
+                        /*main display*/
+
                         return (
-                            <>
-                                <p>Current Time: {formatTime(getCityTime(weatherData.timezone), timeFormat)}</p>
-                                <p>Current Date: {formatDate(cityTime, dateFormat)}</p>
-                                <p>Today is: {todayDayName}</p>
-                                <p>Moon Phase: {getMoonPhase(new Date())}</p>
-                                <p>Temperature: {convertedTemp}</p>
-                                <p>Max/Min: {convertedMaxTemp} / {covertedMinTemp}</p>
-                                <p>Condition: {weatherCondition}</p>
-                                <p>Humidity: {humidity}%</p>
-                                <p>Wind Speed: {windSpeed} m/s</p>
-                                <p>Rain (Last Hour): {rainLastHour}</p>
-                                <p>Sunrise: {formatCityTime(weatherData.sys.sunrise, weatherData.timezone, timeFormat)}</p>
-                                <p>Sunset: {formatCityTime(weatherData.sys.sunset, weatherData.timezone, timeFormat)}</p>
+                            <>  
+                            <div>
+                                {/*main temp*/}
+                                <div><p>{convertedTemp}</p></div>
+                                <div>
+                                    {/*right panel stuff*/}
+                                        <div><p>Moon Phase: {getMoonPhase(new Date())}</p></div>
+                                        <div><p>Max/Min: {convertedMaxTemp} / {covertedMinTemp}</p></div>
+                                        <div><p>Sunrise / Sunset: {formatCityTime(weatherData.sys.sunrise, weatherData.timezone, timeFormat)} / {formatCityTime(weatherData.sys.sunset, weatherData.timezone, timeFormat)}</p></div>
+                                        <div><p>Humidity: {humidity}%</p></div>
+                                        <div><p>Wind Speed: {windSpeed} m/s</p></div>
+                                        <div><p>Rain (Last Hour): {rainLastHour}</p></div>
+                                </div>
+                                
+                            </div>
+
+                            {/*goes top*/}
+                            <div class="weather-card"><p>Current Time: {formatTime(getCityTime(weatherData.timezone), timeFormat)}</p></div>
+                            <div class="weather-card"><p>Current Date: {formatDate(cityTime, dateFormat)}</p></div>
+                            <div class="weather-card"><p>Today is: {todayDayName}</p></div>
+                            
+                            
+                            {/*goes in middle*/}
+                            <div class="weather-card"><p>Condition: {weatherCondition}</p></div>
+                            
                                 <h4>Suggestions</h4>
                                 <ul>
                                     {suggestions.map((suggestion, index)=> (
@@ -342,10 +369,11 @@ function WeatherInfo() {
                                 const maxRainChance = day.maxRainChance != null ? `${day.maxRainChance.toFixed(0)}%` : 'N/A';
 
                                 return (
-                                    <div key={index} style={{ marginBottom: "10px" }}>
+                                    <div key={index} style={{ marginBottom: "10px" }} className="weather-card">
                                         <p>
-                                            <strong>{dayName}</strong>: {maxTemp} / {minTemp}
+                                            <strong>{dayName}</strong> 
                                         </p>
+                                        <p>{maxTemp} / {minTemp}</p>
                                         <p>Rain Chance: {maxRainChance}</p>
                                         <p>Condition: {condition}</p>
                                     </div>

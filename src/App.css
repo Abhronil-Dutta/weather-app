@@ -1,6 +1,3 @@
-.App {
-  text-align: center;
-}
 
 .App-logo {
   height: 40vmin;
@@ -35,4 +32,124 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+
+:root {
+  --bg-color: #f0f0f0;
+  --text-color: #333;
+}
+
+body.day {
+  --bg-clor: #f0f0f0;
+  --text-color: #333;
+}
+
+body.night {
+  --bg-color: #000;
+  --text-color: #fff;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: url('/components/weather_clear_day.jpeg') no-repeat center center fixed;
+  background-size: cover;
+  color: #000;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+
+}
+
+.weather-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 20px;
+}
+
+.clear-day {
+  background: url('/components/weather_clear_day.jpeg') no-repeat center center fixed;
+  background-size: cover;
+}
+
+.cloudy-day {
+  background: url('/components/weather_cloudly_day.jpeg') no-repeat center center fixed;
+  background-size: cover;
+}
+
+.weather-card {
+  background: rgba(255, 255, 255, 0.8); /* Slightly opaque white for better readability */
+  border-radius: 10px;
+  padding: 15px;
+  margin: 5px;
+  width: 100%;
+  max-width: 250px; /* Prevent excessively large cards */
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.right-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: auto;
+  min-height: 100vh;
+  width: max(25vw, 300px);
+  background: rgba(78, 71, 71, 0.664);
+  border-radius: 15px 0 0 15px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.8);
+  overflow-y: auto; /* Ensures vertical scrolling if content exceeds */
+  gap: 15px; /* Adds spacing between items */
+}
+
+.main-content {
+  margin-right: max(25vw, 300px);
+}
+
+.right-panel-content {
+  display: grid; /* Use grid for responsive layout */
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Flexible columns */
+  gap: 15px; /* Spacing between grid items */
+  width: 100%;
+  align-items: start;
+}
+
+.main-temp {
+  font-size: 2.5rem; /* Scales dynamically */
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+
+
+.misc-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+body {
+  min-width: 300px; /* Prevent horizontal scrollbars on smaller screens */
+  overflow-x: hidden;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
