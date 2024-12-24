@@ -7,11 +7,47 @@ function WeatherInfo() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [weeklyData, setWeeklyData] = useState(null);
-    const [currentTime, setCurrentTime] = useState("");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [dateFormat, setDateFormat] = useState("dd/mm/yyyy");
     const [timeFormat, setTimeFormat] = useState("24-hour");
-
+    const [currentTime, setCurrentTime] = useState("");
+    
+    
+    
+    
+    // Logic for fetching and formatting weather data
+    const fetchWeather = () => {
+        if (!city.trim()) {
+            setError("Please enter a city name.");
+            setWeeklyData(null);
+            setWeatherData(null);
+            return;
+        }
+        setError(null);
+        setLoading(true);
+        
+        fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=a0d507e4b45ce304f961d6b0494a488f&units=metric`
+        )
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.cod !== 200) throw new Error(data.message || "City not found.");
+            setWeatherData(data);
+            const { lat, lon } = data.coord;
+            
+            return fetch(
+            `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=a0d507e4b45ce304f961d6b0494a488f&units=metric`
+            );
+        })
+        .then((response) => response.json())
+        .then((forecastData) => {
+            const aggregatedData = aggregateDailyData(forecastData.list);
+            setWeeklyData(aggregatedData);
+        })
+        .catch((err) => setError(err.message))
+        .finally(() => setLoading(false));
+    };
+    
     const aggregateDailyData = (list) => {
         const dailyData = {};
         list.forEach((entry) => {
@@ -24,67 +60,19 @@ function WeatherInfo() {
                 };
             }
             dailyData[date].temps.push(entry.main.temp);
-            if (entry.pop != null) {    
+            if (entry.pop != null) {
                 dailyData[date].rainChances.push(entry.pop);
             }
         });
-
-        return Object.entries(dailyData).map(([date, data]) => {
-            return {
-                date,
-                temp: {
-                    min: Math.min(...data.temps),
-                    max: Math.max(...data.temps),
-                },
-                weather: data.weather,
-                maxRainChance : data.rainChances.length > 0 ? Math.max(...data.rainChances) * 100 : null,
-            };
-        });
+        
+        return Object.entries(dailyData).map(([date, data]) => ({
+            date,
+            temp: { min: Math.min(...data.temps), max: Math.max(...data.temps) },
+            weather: data.weather,
+            maxRainChance: data.rainChances.length > 0 ? Math.max(...data.rainChances) * 100 : null,
+        }));
     };
-
-    const fetchWeather = () => {
-        if (!city.trim()) {
-            setError("Please enter a city name.");
-            setWeeklyData(null);
-            setWeatherData(null);
-            return;
-        }
-
-        setError(null);
-        setLoading(true);
-
-        fetch(
-            `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=a0d507e4b45ce304f961d6b0494a488f&units=metric`
-        )
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.cod !== 200) {
-                    throw new Error(data.message || "City not found. Please try again.");
-                }
-                console.log("Weather Data:", data);
-                setWeatherData(data);
-                const { lat, lon } = data.coord;
-                return fetch(
-                    `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=a0d507e4b45ce304f961d6b0494a488f&units=metric`
-                );
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                console.log("5-Day Forecast API Response:", data);
-                const aggregatedData = aggregateDailyData(data.list);
-                setWeeklyData(aggregatedData);
-            })
-            .catch((error) => {
-                console.error("Error fetching data:", error.message);
-                setError(error.message);
-                setWeatherData(null);
-                setWeeklyData(null);
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-    };
-
+    
     useEffect(() => {
         fetchWeather();
         const interval = setInterval(() => {
@@ -94,14 +82,14 @@ function WeatherInfo() {
         document.body.className = weatherData ? weatherData.weather[0].main.toLowerCase() : 'clear';
         return () => clearInterval(interval);
     }, []);
-
+    
     const getCityTime = (timezoneOffset) => {
         const now = new Date();
         const utc = now.getTime() + now.getTimezoneOffset() * 60000; // UTC time in ms
         const localTime = new Date(utc + timezoneOffset * 1000); // Adjust to city time
         return localTime;
     };
-
+    
     const formatTime = (time, format) => {
         let hours = time.getHours();
         const minutes = time.getMinutes().toString().padStart(2, '0');
@@ -121,19 +109,16 @@ function WeatherInfo() {
         }
     };
     
-
     const formatCityTime = (timestamp, timezoneOffset, timeFormat) => {
         const utcTime = new Date((timestamp + 25200 + timezoneOffset) * 1000); // Adjust timestamp with timezone offset
         return formatTime(utcTime, timeFormat); // Use the formatTime function to format the adjusted time
     };
-
-
-
+    
     const formatDate = (date, format) => {
         const day = date.getDate().toString().padStart(2, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-based
         const year = date.getFullYear();
-    
+        
         if (format === "yyyy/mm/dd") {
             return `${year}/${month}/${day}`;
         } else if (format === "mm/dd/yyyy") {
@@ -143,26 +128,28 @@ function WeatherInfo() {
             return `${day}/${month}/${year}`;
         }
     };
-
+    
     const getDayName = (date, timezoneOffset) => {
         const utcDate = new Date(date.getTime() + timezoneOffset * 1000); // Adjust for timezone
         return new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(utcDate);
     };
-
+    
+    
+    
     const generateSuggestions = (weatherData) => {
         const { temp, maxDaytemp, minDaytemp, weatherCondition, humidity, windSpeed } = weatherData;
         let suggestions = [];
-    
+        
         // Temperature-based suggestions
         if (temp > 30) suggestions.push("It's hot outside! Stay hydrated and avoid prolonged exposure to the sun. 🥤☀️");
         if (temp < 15) suggestions.push("It's quite chilly! Make sure to wear a coat and gloves. 🧥🧤");
         if (temp >= 15 && temp <= 30) suggestions.push("The weather is pleasant! A light jacket might be all you need. 😊");
-    
+        
         // Day temperature swings
         if ((maxDaytemp - minDaytemp) > 10) suggestions.push("Temperature swings today! Wear layers to stay comfortable. 🧥👕");
         if (maxDaytemp > 35) suggestions.push("Be prepared for a hot day ahead. Consider indoor activities. 🌡️");
         if (minDaytemp < 5) suggestions.push("Cold nights expected! Keep warm blankets and heating ready. 🛏️🔥");
-    
+        
         // Weather condition suggestions
         if (weatherCondition.includes("Rain")) suggestions.push("Rain is expected. Carry an umbrella and wear waterproof shoes. 🌧️");
         if (weatherCondition.includes("Clouds")) suggestions.push("It's cloudy today. Keep an eye out for unexpected rain. ☁️");
@@ -173,11 +160,11 @@ function WeatherInfo() {
         if (weatherCondition.includes("Snow")) suggestions.push("Snow is expected! Dress warmly and drive carefully. ❄️🚗");
         if (weatherCondition.includes("Fog")) suggestions.push("Visibility might be low due to fog. Drive carefully and use fog lights. 🚗💡");
         if (weatherCondition.includes("Haze")) suggestions.push("Hazy conditions detected. Visibility might be reduced; drive carefully and use headlights. 🚗💡")
-
+        
         // Humidity-based suggestions
         if (humidity > 80) suggestions.push("High humidity! Keep cool and avoid strenuous outdoor activities. 💦");
         if (humidity < 20) suggestions.push("The air is quite dry. Use a moisturizer and stay hydrated. 💧");
-    
+        
         // Wind speed suggestions
         if (windSpeed > 10) {
             if (temp < 15) {
@@ -186,29 +173,30 @@ function WeatherInfo() {
                 suggestions.push("It's windy outside! Secure loose objects if you're outdoors. 🌬️");
             }
         }
-    
+        
         return suggestions;
     };
     
-
+    
     const convertTemperature = (temp) => {
         if (temp == null) return "N/A";
         if (unit === "Celsius") return temp.toFixed(1) + "°C";
         if (unit === "Fahrenheit") return ((temp * 9) / 5 + 32).toFixed(1) + "°F";
         if (unit === "Kelvin") return (temp + 273.15).toFixed(1) + "K";
     };
-
+    
+    
     const getMoonPhase = (date) => {
         const year = date.getFullYear();
         const month = date.getMonth() + 1; 
         const day = date.getDate();
-
-    
+        
+        
         const lp = 2551443; 
         const newMoon = new Date(1970, 0, 7, 20, 35, 0).getTime(); 
         const phase = ((date.getTime() - newMoon) / 1000) % lp; 
         const age = Math.floor((phase / (24 * 3600))); 
-
+        
         if (age === 0) return "New Moon 🌑";
         if (age < 7) return "Waxing Crescent 🌒";
         if (age === 7) return "First Quarter 🌓";
@@ -218,177 +206,209 @@ function WeatherInfo() {
         if (age === 21) return "Last Quarter 🌗";
         return "Waning Crescent 🌘";
     }
-
+    
     return (
-        <div>
-
-            
-            {/*input block*/}
-
-
-             <input
+    <div class="container">
+        {/* Settings */}
+        <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} class="settings">
+            Settings ⚙️
+        </button>
+        {isSettingsOpen && (
+            <div
+            style={{
+            position: "absolute",
+            top: "40px",
+            left: "10px",
+            background: "#000",
+            padding: "10px",
+            border: "1px solid #ccc",
+        }}
+        >
+        <h3>Settings</h3>
+        <label>
+            Temperature Format: <br />
+            <select value={unit} onChange={(e) => setUnit(e.target.value)}>
+                <option value="Celsius">Celsius</option>
+                <option value="Fahrenheit">Fahrenheit</option>
+                <option value="Kelvin">Kelvin</option>
+            </select>
+        </label>
+        <br />
+        <label>
+            Date Format: <br />
+            <select value={dateFormat} onChange={(e) => setDateFormat(e.target.value)}>
+                <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+                <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                <option value="yyyy/mm/dd">YYYY/MM/DD</option>
+            </select>
+        </label>
+        <br />
+        <label>
+            Time Format: <br />
+            <select value={timeFormat} onChange={(e) => setTimeFormat(e.target.value)}>
+                <option value="12-hour">12-Hour</option>
+                <option value="24-hour">24-Hour</option>
+                <option value="military">Military Time</option>
+            </select>
+        </label>
+        <br />
+        <button onClick={() => setIsSettingsOpen(false)}>Close</button>
+    </div>
+    )}
+    
+    <div class="content">
+        {/* Left Panel */}
+        <div class="left_panel">
+            <div class="search">
+                <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Enter city name"
-            />
-            <button onClick={fetchWeather}>Search</button>
-
-
-
-            {/*settings*/}
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} style={{ position: 'absolute', top: '10px', left: '10px' }}>
-            Settings ⚙️
-            </button>
-
-            {isSettingsOpen && (
-                <div style={{position: 'absolute', top: '40px', left: '10px', background: '#000',padding: '10px', border: 'px solid #ccc'}}> 
-                <h3>Settings</h3>
-
-                <label>
-                    Temperature Format: <br></br>
-                    <select value={unit} onChange={(e) => setUnit(e.target.value)}>
-                        <option value="Celsius">Celsius</option>
-                        <option value="Fahrenheit">Fahrenheit</option>
-                        <option value="Kelvin">Kelvin</option>
-                    </select>
-                </label>
-
-                <br></br>
-
-                <label>
-                Date Format: <br></br>
-                <select value={dateFormat} onChange={(e) => setDateFormat(e.target.value)}>
-                    <option value="dd/mm/yyyy">DD/MM/YYYY</option>
-                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
-                    <option value="yyyy/mm/dd">YYYY/MM/DD</option>
-                </select>
-                </label>
-                <br></br>
-                <label>
-                Time Format: <br></br>
-                <select value={timeFormat} onChange={(e) => setTimeFormat(e.target.value)}>
-                    <option value="12-hour">12-Hour</option>
-                    <option value="24-hour">24-Hour</option>
-                    <option value="military">Military Time</option>
-                </select>
-                </label>
-                <br></br>
-                <button onClick={() => setIsSettingsOpen(false)}>Close</button>
-
-                
-                
-                </div>
-
-
-
-            )}
-
+                class="input"
+                />
+                <button onClick={fetchWeather} class="search_button">
+                    Search
+                </button>
+            </div>
             
-
             {loading ? (
                 <p>Loading...</p>
-            ) : error ? (
+                ) : error ? (
                 <p style={{ color: "red" }}>{error}</p>
-            ) : weatherData ? (
-                <div>
-                    {(() => {
-                        //All data shown
-                        const temp = weatherData?.main?.temp;
-                        const minDaytemp = weatherData?.main?.temp_min;
-                        const maxDaytemp = weatherData?.main?.temp_max;
-                        const weatherCondition = weatherData?.weather?.[0]?.main || "Unknown";
-                        const humidity = weatherData?.main?.humidity;
-                        const windSpeed = weatherData?.wind?.speed || "N/A";
-                        const rainLastHour = weatherData?.rain?.["1h"] ? `${weatherData.rain["1h"].toFixed(1)} mm` : "No data available";
+                ) : weatherData ? (
+                <>
+                <div class="condition-and-suggestions">
+                    <p class="condition">Condition: {weatherData.weather[0].main || "Unknown"}</p>
+                    <h4>Suggestions</h4>
+                    <ul>
+                        {generateSuggestions({
+                            temp: weatherData?.main?.temp,
+                            maxDaytemp: weatherData?.main?.temp_max,
+                            minDaytemp: weatherData?.main?.temp_min,
+                            weatherCondition: weatherData?.weather[0].main,
+                            humidity: weatherData?.main?.humidity,
+                            windSpeed: weatherData?.wind?.speed,
+                        }).map((suggestion, index) => (
+                        <li key={index}>{suggestion}</li>
+                        ))}
+                    </ul>
+                </div>
+                
+                <h3 class="s-day">7-Day Forecast</h3>
+                <div class="seven_day_forecast">
+                    {weeklyData?.map((day, index) => {
+                        // Constants for day name and date
                         const cityTime = getCityTime(weatherData.timezone);
-                        const todayDayName = getDayName(new Date(), weatherData.timezone);
-
-                        //Converting Temperature
-                        const convertedTemp = convertTemperature(temp);
-                        const covertedMinTemp = convertTemperature(minDaytemp);
-                        const convertedMaxTemp = convertTemperature(maxDaytemp);
-
-                        //suggestions
-                        const suggestions = generateSuggestions({temp, maxDaytemp, minDaytemp, weatherCondition, humidity, windSpeed,});
-
-
-
-
-                        /*main display*/
-
+                        const forecastDate = new Date(cityTime);
+                        forecastDate.setDate(cityTime.getDate() + index + 1); // Adjust date based on index
+                        const dayName = getDayName(forecastDate, weatherData.timezone);
+                        const formattedDate = formatDate(forecastDate, dateFormat);
+                        
                         return (
-                            <>  
-                            <div>
-                                {/*main temp*/}
-                                <div><p>{convertedTemp}</p></div>
-                                <div>
-                                    {/*right panel stuff*/}
-                                        <div><p>Moon Phase: {getMoonPhase(new Date())}</p></div>
-                                        <div><p>Max/Min: {convertedMaxTemp} / {covertedMinTemp}</p></div>
-                                        <div><p>Sunrise / Sunset: {formatCityTime(weatherData.sys.sunrise, weatherData.timezone, timeFormat)} / {formatCityTime(weatherData.sys.sunset, weatherData.timezone, timeFormat)}</p></div>
-                                        <div><p>Humidity: {humidity}%</p></div>
-                                        <div><p>Wind Speed: {windSpeed} m/s</p></div>
-                                        <div><p>Rain (Last Hour): {rainLastHour}</p></div>
-                                </div>
-                                
+                        <div key={index} class="seven-day-card">
+                            <div class="first-shown">
+                                <span>
+                                    <p><strong>{dayName}</strong></p>
+                                    <p><strong>{formattedDate}</strong></p>
+                                    <p>{convertTemperature(day.temp.max)} / {convertTemperature(day.temp.min)}</p>
+                                </span>
                             </div>
-
-                            {/*goes top*/}
-                            <div class="weather-card"><p>Current Time: {formatTime(getCityTime(weatherData.timezone), timeFormat)}</p></div>
-                            <div class="weather-card"><p>Current Date: {formatDate(cityTime, dateFormat)}</p></div>
-                            <div class="weather-card"><p>Today is: {todayDayName}</p></div>
-                            
-                            
-                            {/*goes in middle*/}
-                            <div class="weather-card"><p>Condition: {weatherCondition}</p></div>
-                            
-                                <h4>Suggestions</h4>
-                                <ul>
-                                    {suggestions.map((suggestion, index)=> (
-                                        <li key={index}>{suggestion}</li>
-                                    ))}
-                                </ul>
-                            </>
-                        );
-                    })()}
-
-                    <h3>7-Day Forecast</h3>
-                    {weeklyData ? (
-                        <div>
-                            {weeklyData.map((day, index) => {
-                                const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                                const cityTime = getCityTime(weatherData.timezone);
-                                const cityDayIndex = cityTime.getDay();
-                                const dayName = daysOfWeek[(cityDayIndex + index + 1) % 7];
-                                
-
-                                const maxTemp = convertTemperature(day.temp.max);
-                                const minTemp = convertTemperature(day.temp.min);
-                                const condition = day.weather?.main || "Unknown";
-                                const maxRainChance = day.maxRainChance != null ? `${day.maxRainChance.toFixed(0)}%` : 'N/A';
-
-                                return (
-                                    <div key={index} style={{ marginBottom: "10px" }} className="weather-card">
-                                        <p>
-                                            <strong>{dayName}</strong> 
-                                        </p>
-                                        <p>{maxTemp} / {minTemp}</p>
-                                        <p>Rain Chance: {maxRainChance}</p>
-                                        <p>Condition: {condition}</p>
-                                    </div>
-                                );
-                            })}
+                            <div class="second-shown">
+                                <span>
+                                    <p><strong>{dayName}</strong></p>
+                                    <p><strong>{formattedDate}</strong></p>
+                                    <p>{convertTemperature(day.temp.max)} / {convertTemperature(day.temp.min)}</p>
+                                    <p>{day.weather.main || "Unknown"}</p>
+                                    <p>Rain Chance: {day.maxRainChance || "N/A"}%</p>
+                                </span>
+                            </div>
                         </div>
-                    ) : (
-                        <p>No weekly data available.</p>
+                        );
+                    })}
+                </div>
+                
+                </>
+                ) : (
+                <p>No data available. Please wait!</p>
+                )}
+            </div>
+            
+            {/* Right Panel */}
+            <div class="right_panel">
+                {weatherData && (
+                    <div class="right_panel_content">
+                        <div class="temp_box">
+                            <p class="temp">{convertTemperature(weatherData?.main?.temp)}</p>
+                        </div>
+                        <div class="misc_data">
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Current Time</strong><br />
+                                    {formatTime(getCityTime(weatherData.timezone), timeFormat)}
+                                </p>
+                            </div>
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Current Date</strong><br />
+                                    {formatDate(getCityTime(weatherData.timezone), dateFormat)}
+                                </p>
+                            </div>
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Today is</strong><br />
+                                    {getDayName(new Date(), weatherData.timezone)}
+                                </p>
+                            </div>
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Moon Phase</strong><br />
+                                    {getMoonPhase(new Date())}
+                                </p>
+                            </div>
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Humidity</strong><br />
+                                    {weatherData?.main?.humidity}%
+                                </p>
+                            </div>
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Sunrise</strong><br />
+                                    {formatCityTime(weatherData.sys.sunrise, weatherData.timezone, timeFormat)}
+                                </p>
+                            </div>
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Sunset</strong><br />
+                                    {formatCityTime(weatherData.sys.sunset, weatherData.timezone, timeFormat)}
+                                </p>
+                            </div>
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Wind Speed</strong><br />
+                                    {weatherData?.wind?.speed || "N/A"} m/s
+                                </p>
+                            </div>
+                            <div class="card">
+                                <p class="misc_detail">
+                                    <strong>Rain (Last Hour)</strong><br />
+                                    {weatherData?.rain?.["1h"]
+                                    ? `${weatherData.rain["1h"].toFixed(1)} mm`
+                                    : "No data available"}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="footer">
+                            <p>&copy; 2024 Weather App. All Rights Reserved.</p>
+                        </div>
+                    </div>
                     )}
                 </div>
-            ) : (
-                <p>No data available. Please wait!</p>
-            )}
+            </div>
         </div>
-    );
-}
-
-export default WeatherInfo;
+        );
+        
+    }
+    
+    export default WeatherInfo;
