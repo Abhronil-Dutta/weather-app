@@ -6,7 +6,7 @@ import WeatherInfo from './components/WeatherInfo';
 function App() {
   return (
     <div className="App">
-      <Header />
+      
       <WeatherInfo />
       
     </div>

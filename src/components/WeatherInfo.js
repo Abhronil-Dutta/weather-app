@@ -222,8 +222,10 @@ function WeatherInfo() {
             background: "#000",
             padding: "10px",
             border: "1px solid #ccc",
+            color: "white",
+            
         }}
-        >
+         class = "settings-box">
         <h3>Settings</h3>
         <label>
             Temperature Format: <br />
@@ -259,6 +261,9 @@ function WeatherInfo() {
     <div class="content">
         {/* Left Panel */}
         <div class="left_panel">
+            <header>
+                <h1 class = "mainHeading">Weather Advisor 🌦️</h1>
+            </header>
             <div class="search">
                 <input
                 type="text"
@@ -275,12 +280,12 @@ function WeatherInfo() {
             {loading ? (
                 <p>Loading...</p>
                 ) : error ? (
-                <p style={{ color: "red" }}>{error}</p>
+                <p class = "error">{error}</p>
                 ) : weatherData ? (
                 <>
                 <div class="condition-and-suggestions">
-                    <p class="condition">Condition: {weatherData.weather[0].main || "Unknown"}</p>
-                    <h4>Suggestions</h4>
+                    <p class="condition">{weatherData.weather[0].main || "Unknown"}</p>
+                    <h4 class = "suggestion_heading">Suggestions</h4>
                     <ul>
                         {generateSuggestions({
                             temp: weatherData?.main?.temp,
@@ -290,7 +295,7 @@ function WeatherInfo() {
                             humidity: weatherData?.main?.humidity,
                             windSpeed: weatherData?.wind?.speed,
                         }).map((suggestion, index) => (
-                        <li key={index}>{suggestion}</li>
+                        <li key={index}><strong>{suggestion}</strong></li>
                         ))}
                     </ul>
                 </div>
@@ -338,6 +343,9 @@ function WeatherInfo() {
             <div class="right_panel">
                 {weatherData && (
                     <div class="right_panel_content">
+                        <div class="city_name">
+                            <h2>{weatherData.name}</h2>
+                        </div>
                         <div class="temp_box">
                             <p class="temp">{convertTemperature(weatherData?.main?.temp)}</p>
                         </div>
